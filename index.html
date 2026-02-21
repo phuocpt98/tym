@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Phước & Nga - Rồi Ta Sẽ Ngắm Pháo Hoa Cùng Nhau</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: #0a0015;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #fff;
+            height: 100vh;
+            height: 100dvh;
+            width: 100vw;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* ===== START SCREEN ===== */
+        #startScreen {
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(ellipse at center, #1a0033 0%, #0a0015 70%);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: opacity 1.2s ease;
+        }
+        #startScreen.hidden { opacity: 0; pointer-events: none; }
+
+        #startScreen .heart-icon {
+            font-size: clamp(3rem, 10vw, 5rem);
+            animation: heartbeat 1.2s ease-in-out infinite;
+            margin-bottom: 20px;
+        }
+        #startScreen h2 {
+            font-size: clamp(1.1rem, 4vw, 1.8rem);
+            color: #ff6b9d;
+            margin-bottom: 10px;
+            text-align: center;
+            padding: 0 20px;
+            animation: fadeInUp 1s ease;
+        }
+        #startScreen .names {
+            font-size: clamp(1.5rem, 5vw, 2.5rem);
+            font-weight: bold;
+            background: linear-gradient(135deg, #ff6b9d, #c44dff, #6e7bff, #ff6b9d);
+            background-size: 300% 300%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradientShift 3s ease infinite, fadeInUp 1s ease 0.3s both;
+            margin-bottom: 20px;
+        }
+        #startScreen p {
+            font-size: clamp(0.85rem, 3vw, 1rem);
+            color: rgba(255,255,255,0.6);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes heartbeat {
+            0%,100% { transform: scale(1); }
+            15% { transform: scale(1.2); }
+            30% { transform: scale(1); }
+            45% { transform: scale(1.15); }
+        }
+        @keyframes pulse {
+            0%,100% { opacity: 0.4; }
+            50% { opacity: 1; }
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(25px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* ===== LYRICS TICKER ===== */
+        #lyricsBar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            z-index: 10;
+            background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%);
+            padding: 12px 0 16px;
+            overflow: hidden;
+            display: none;
+        }
+        #lyricsBar.show { display: block; }
+
+        .lyrics-track {
+            display: flex;
+            white-space: nowrap;
+            animation: lyricsScroll var(--scroll-duration, 30s) linear infinite;
+        }
+
+        .lyric-word {
+            display: inline-block;
+            font-size: clamp(0.9rem, 3vw, 1.15rem);
+            font-weight: 600;
+            margin: 0 6px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.08);
+            animation: lyricTransform 4s ease-in-out infinite;
+            animation-delay: var(--delay);
+            text-shadow: 0 0 10px currentColor;
+        }
+
+        @keyframes lyricsScroll {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        @keyframes lyricTransform {
+            0%,100% { transform: translateY(0) scale(1) rotate(0deg); }
+            25% { transform: translateY(-4px) scale(1.08) rotate(-1deg); }
+            50% { transform: translateY(0) scale(1) rotate(0deg); }
+            75% { transform: translateY(3px) scale(1.05) rotate(1deg); }
+        }
+
+        /* ===== MUSIC CONTROL ===== */
+        #musicControl {
+            position: fixed;
+            bottom: 70px;
+            right: 15px;
+            z-index: 50;
+            pointer-events: all;
+            background: rgba(255,107,157,0.2);
+            border: 1px solid rgba(255,107,157,0.4);
+            color: #ff6b9d;
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        #musicControl:hover { background: rgba(255,107,157,0.4); transform: scale(1.1); }
+        #musicControl.playing { animation: musicPulse 2s ease-in-out infinite; }
+
+        @keyframes musicPulse {
+            0%,100% { box-shadow: 0 0 10px rgba(255,107,157,0.3); }
+            50% { box-shadow: 0 0 25px rgba(255,107,157,0.6); }
+        }
+
+        /* ===== STARS ===== */
+        .stars { position: fixed; inset: 0; z-index: 0; }
+        .star {
+            position: absolute;
+            background: #fff;
+            border-radius: 50%;
+            animation: twinkle var(--duration) ease-in-out infinite;
+        }
+        @keyframes twinkle {
+            0%,100% { opacity: 0.2; }
+            50% { opacity: 1; }
+        }
+
+        /* ===== FALLING HEARTS ===== */
+        .falling-heart {
+            position: fixed;
+            z-index: 3;
+            pointer-events: none;
+            top: -50px;
+            animation: heartFall var(--fall-duration) linear forwards;
+            filter: drop-shadow(0 0 6px currentColor);
+        }
+        @keyframes heartFall {
+            0% {
+                opacity: 0;
+                transform: translateX(0) rotate(0deg) scale(0.5);
+            }
+            10% {
+                opacity: 0.9;
+                transform: translateX(10px) rotate(15deg) scale(1);
+            }
+            30% {
+                transform: translateX(-15px) rotate(-10deg) scale(1);
+            }
+            50% {
+                transform: translateX(12px) rotate(20deg) scale(0.95);
+            }
+            70% {
+                transform: translateX(-10px) rotate(-15deg) scale(0.9);
+            }
+            90% {
+                opacity: 0.6;
+                transform: translateX(8px) rotate(10deg) scale(0.8);
+            }
+            100% {
+                opacity: 0;
+                transform: translateX(0) rotate(0deg) scale(0.4);
+                top: 105vh;
+            }
+        }
+
+        /* ===== FLOATING UP EMOJIS ===== */
+        .floating-heart {
+            position: fixed;
+            z-index: 3;
+            opacity: 0;
+            pointer-events: none;
+            animation: floatUp 4s ease-out forwards;
+        }
+        @keyframes floatUp {
+            0% { opacity: 0.8; transform: translateY(0) scale(1) rotate(0deg); }
+            100% { opacity: 0; transform: translateY(-250px) scale(0.3) rotate(20deg); }
+        }
+
+        /* ===== MOBILE ===== */
+        @media (max-width: 480px) {
+            #musicControl { width: 40px; height: 40px; font-size: 1rem; bottom: 60px; right: 10px; }
+            #lyricsBar { padding: 8px 0 12px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Start Screen -->
+    <div id="startScreen">
+        <div class="heart-icon">&#10084;&#65039;</div>
+        <div class="names">Phước &#10084; Nga</div>
+        <h2>Rồi Ta Sẽ Ngắm Pháo Hoa Cùng Nhau</h2>
+        <p>Chạm để bắt đầu...</p>
+    </div>
+
+    <!-- Stars -->
+    <div class="stars" id="stars"></div>
+
+    <!-- Fireworks Canvas -->
+    <canvas id="fireworks"></canvas>
+
+    <!-- Lyrics Bar -->
+    <div id="lyricsBar">
+        <div class="lyrics-track" id="lyricsTrack"></div>
+    </div>
+
+    <!-- Music Control -->
+    <button id="musicControl" title="Bật/Tắt nhạc">&#9835;</button>
+
+    <!-- Background Music -->
+    <audio id="bgMusic" loop preload="auto">
+        <source src="music.mp3" type="audio/mpeg">
+    </audio>
+
+    <script>
+    (() => {
+        // ===== CONFIG =====
+        const RAINBOW = ['#ff0000','#ff8c00','#ffd700','#00e639','#00bfff','#6e5cff','#e64dff'];
+        const FIREWORK_COLORS = [
+            '#ff2d7b','#d946ff','#7b5cff','#ff4757','#ffaa00',
+            '#00ff88','#1eadff','#ff6348','#ffe600','#ff6bff',
+            '#00e5ff','#ff4081','#ffea00','#00ffcc','#ff1744',
+            '#e040fb','#69f0ae','#ffd740','#40c4ff','#ff80ab'
+        ];
+        const TEXT_WORDS = ['Phước','Nga','Love'];
+        const FALLING_HEARTS = ['❤️','💗','💖','💕','💓','💘','💝','🩷','🤍','🩵'];
+
+        const LYRICS = [
+            'Rồi ta sẽ ngắm pháo hoa cùng nhau',
+            'Khi bầu trời đêm nay lung linh sắc màu',
+            'Anh sẽ nắm tay em thật chặt',
+            'Cùng đếm ngược giây phút giao thừa',
+            'Pháo hoa rực rỡ trên cao',
+            'Như tình yêu mình cháy sáng biết bao',
+            'Em ơi cứ tựa vai anh nhé',
+            'Ngắm trời đêm lung linh ánh sao',
+            'Mỗi ánh pháo hoa là lời anh muốn nói',
+            'Rằng yêu em nhiều hơn ngàn lời ca',
+            'Dù mai sau có bao đổi thay',
+            'Anh vẫn ở đây bên em mỗi ngày',
+            'Rồi ta sẽ ngắm pháo hoa cùng nhau',
+            'Mãi mãi bên nhau dù nắng hay mưa',
+        ];
+
+        // ===== STARS =====
+        const starsEl = document.getElementById('stars');
+        for (let i = 0; i < 100; i++) {
+            const s = document.createElement('div');
+            s.className = 'star';
+            const sz = Math.random() * 2.5 + 0.5;
+            s.style.cssText = `width:${sz}px;height:${sz}px;left:${Math.random()*100}%;top:${Math.random()*100}%;--duration:${Math.random()*3+2}s;animation-delay:${Math.random()*3}s`;
+            starsEl.appendChild(s);
+        }
+
+        // ===== LYRICS BAR =====
+        function buildLyrics() {
+            const track = document.getElementById('lyricsTrack');
+            const allWords = LYRICS.join('  ///  ');
+            for (let rep = 0; rep < 2; rep++) {
+                allWords.split(/\s+/).forEach((word, i) => {
+                    const span = document.createElement('span');
+                    span.className = 'lyric-word';
+                    span.textContent = word;
+                    span.style.color = RAINBOW[(i + rep * 100) % RAINBOW.length];
+                    span.style.setProperty('--delay', (i * 0.15) + 's');
+                    track.appendChild(span);
+                });
+            }
+            const wordCount = allWords.split(/\s+/).length;
+            track.style.setProperty('--scroll-duration', Math.max(30, wordCount * 0.6) + 's');
+        }
+        buildLyrics();
+
+        // ===== CANVAS =====
+        const canvas = document.getElementById('fireworks');
+        const ctx = canvas.getContext('2d');
+        let W, H;
+        let fireworksActive = false;
+
+        function resize() {
+            W = canvas.width = window.innerWidth;
+            H = canvas.height = window.innerHeight;
+        }
+        resize();
+        window.addEventListener('resize', resize);
+
+        // ===== PARTICLE =====
+        class Particle {
+            constructor(x, y, color, vx, vy, size, fade, gravity) {
+                this.x = x; this.y = y;
+                this.color = color;
+                this.vx = vx; this.vy = vy;
+                this.size = size;
+                this.fade = fade;
+                this.gravity = gravity;
+                this.alpha = 1;
+                this.trail = [];
+            }
+            update() {
+                this.trail.push({x:this.x, y:this.y, a:this.alpha});
+                if (this.trail.length > 6) this.trail.shift();
+                this.vx *= 0.985;
+                this.vy *= 0.985;
+                this.vy += this.gravity;
+                this.x += this.vx;
+                this.y += this.vy;
+                this.alpha -= this.fade;
+            }
+            draw(ctx) {
+                // Glow
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = this.color;
+                // Trail
+                for (let i = 0; i < this.trail.length; i++) {
+                    const t = this.trail[i];
+                    ctx.beginPath();
+                    ctx.arc(t.x, t.y, this.size * (i/this.trail.length) * 0.5, 0, Math.PI*2);
+                    ctx.fillStyle = this.color;
+                    ctx.globalAlpha = t.a * (i/this.trail.length) * 0.35;
+                    ctx.fill();
+                }
+                // Main
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
+                ctx.fillStyle = this.color;
+                ctx.globalAlpha = this.alpha;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+                ctx.globalAlpha = 1;
+            }
+            alive() { return this.alpha > 0.01; }
+        }
+
+        // ===== SHAPE GENERATORS =====
+        function shapeCircle(count) {
+            const pts = [];
+            for (let i = 0; i < count; i++) {
+                const a = (Math.PI*2/count)*i;
+                const sp = Math.random()*4 + 3;
+                pts.push({dx: Math.cos(a)*sp, dy: Math.sin(a)*sp});
+            }
+            return pts;
+        }
+
+        function shapeHeart(count) {
+            const pts = [];
+            for (let i = 0; i < count; i++) {
+                const t = (Math.PI*2/count)*i;
+                const hx = 16*Math.pow(Math.sin(t),3);
+                const hy = -(13*Math.cos(t) - 5*Math.cos(2*t) - 2*Math.cos(3*t) - Math.cos(4*t));
+                pts.push({dx: hx*0.28, dy: hy*0.28});
+            }
+            return pts;
+        }
+
+        function shapeStar(count) {
+            const pts = [];
+            for (let i = 0; i < count; i++) {
+                const a = (Math.PI*2/count)*i;
+                const spikes = 5;
+                const inner = 2, outer = 5;
+                const angle5 = Math.PI*2/spikes;
+                const nearestSpike = Math.round(a / angle5) * angle5;
+                const dist = Math.abs(a - nearestSpike);
+                const r = outer - (outer - inner) * (dist / (angle5/2));
+                const sp = r + Math.random()*0.4;
+                pts.push({dx: Math.cos(a)*sp, dy: Math.sin(a)*sp});
+            }
+            return pts;
+        }
+
+        function shapeRose(count) {
+            const pts = [];
+            const k = 4;
+            for (let i = 0; i < count; i++) {
+                const t = (Math.PI*2/count)*i;
+                const r = 5 * Math.cos(k*t);
+                const sp = Math.abs(r) + Math.random()*0.3;
+                pts.push({dx: Math.cos(t)*sp, dy: Math.sin(t)*sp});
+            }
+            return pts;
+        }
+
+        function shapeSmiley(count) {
+            const pts = [];
+            const scale = 1.2;
+            const half = Math.floor(count * 0.5);
+            const eyeCount = Math.floor(count * 0.2);
+            const mouthCount = count - half - eyeCount;
+            for (let i = 0; i < half; i++) {
+                const a = (Math.PI*2/half)*i;
+                pts.push({dx: Math.cos(a)*4*scale, dy: Math.sin(a)*4*scale});
+            }
+            for (let i = 0; i < Math.floor(eyeCount/2); i++) {
+                const a = (Math.PI*2/Math.floor(eyeCount/2))*i;
+                pts.push({dx: (-1.5 + Math.cos(a)*0.7)*scale, dy: (-1.2 + Math.sin(a)*0.7)*scale});
+            }
+            for (let i = 0; i < Math.ceil(eyeCount/2); i++) {
+                const a = (Math.PI*2/Math.ceil(eyeCount/2))*i;
+                pts.push({dx: (1.5 + Math.cos(a)*0.7)*scale, dy: (-1.2 + Math.sin(a)*0.7)*scale});
+            }
+            for (let i = 0; i < mouthCount; i++) {
+                const a = (Math.PI/mouthCount)*i;
+                pts.push({dx: (Math.cos(a)*2.2 - 0.8)*scale, dy: (Math.sin(a)*1 + 0.6)*scale});
+            }
+            return pts;
+        }
+
+        const shapeFns = [shapeCircle, shapeHeart, shapeStar, shapeRose, shapeSmiley];
+
+        // ===== TEXT FIREWORK =====
+        function getTextPoints(text, size) {
+            const off = document.createElement('canvas');
+            const s = Math.min(size, 200);
+            off.width = s * 3;
+            off.height = s * 1.5;
+            const oc = off.getContext('2d');
+            oc.fillStyle = '#fff';
+            oc.font = `bold ${s}px Arial`;
+            oc.textAlign = 'center';
+            oc.textBaseline = 'middle';
+            oc.fillText(text, off.width/2, off.height/2);
+            const data = oc.getImageData(0, 0, off.width, off.height).data;
+            const points = [];
+            const step = Math.max(2, Math.floor(s / 22));
+            for (let y = 0; y < off.height; y += step) {
+                for (let x = 0; x < off.width; x += step) {
+                    if (data[(y * off.width + x) * 4 + 3] > 128) {
+                        points.push({
+                            dx: (x - off.width/2) * 0.07,
+                            dy: (y - off.height/2) * 0.07
+                        });
+                    }
+                }
+            }
+            return points;
+        }
+
+        // ===== ROCKET =====
+        class Rocket {
+            constructor() {
+                this.x = Math.random() * W * 0.7 + W * 0.15;
+                this.y = H;
+                this.targetY = Math.random() * H * 0.4 + H * 0.05;
+                this.vy = -(Math.random() * 4 + 7);
+                this.color = FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)];
+                this.exploded = false;
+                this.particles = [];
+                this.trail = [];
+                this.textParticles = [];
+            }
+
+            update() {
+                if (!this.exploded) {
+                    this.trail.push({x:this.x, y:this.y});
+                    if (this.trail.length > 10) this.trail.shift();
+                    this.y += this.vy;
+                    this.vy *= 0.99;
+                    if (this.y <= this.targetY) this.explode();
+                }
+                this.particles.forEach(p => p.update());
+                this.particles = this.particles.filter(p => p.alive());
+                this.textParticles.forEach(p => p.update());
+                this.textParticles = this.textParticles.filter(p => p.alive());
+            }
+
+            explode() {
+                this.exploded = true;
+                const rand = Math.random();
+
+                if (rand < 0.28) {
+                    // TEXT explosion
+                    const word = TEXT_WORDS[Math.floor(Math.random() * TEXT_WORDS.length)];
+                    const fontSize = Math.min(W, H) < 500 ? 50 : 70;
+                    const pts = getTextPoints(word, fontSize);
+                    const color = FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)];
+                    pts.forEach(p => {
+                        this.textParticles.push(new Particle(
+                            this.x, this.y, color,
+                            p.dx + (Math.random()-0.5)*0.3,
+                            p.dy + (Math.random()-0.5)*0.3,
+                            Math.random()*2 + 1.2,
+                            Math.random()*0.003 + 0.002,
+                            0.006
+                        ));
+                    });
+                    // Sparkle ring around text
+                    for (let i = 0; i < 40; i++) {
+                        const a = Math.random()*Math.PI*2;
+                        const sp = Math.random()*6 + 3;
+                        this.particles.push(new Particle(
+                            this.x, this.y,
+                            FIREWORK_COLORS[Math.floor(Math.random()*FIREWORK_COLORS.length)],
+                            Math.cos(a)*sp, Math.sin(a)*sp,
+                            Math.random()*1.5+0.5, Math.random()*0.012+0.006, 0.018
+                        ));
+                    }
+                } else {
+                    // SHAPE explosion - more particles, bigger
+                    const shapeIdx = Math.floor(Math.random() * shapeFns.length);
+                    const count = shapeIdx === 4 ? 100 : (Math.floor(Math.random()*40)+80);
+                    const shape = shapeFns[shapeIdx](count);
+                    const multiColor = Math.random() > 0.3;
+                    shape.forEach(p => {
+                        const c = multiColor
+                            ? FIREWORK_COLORS[Math.floor(Math.random()*FIREWORK_COLORS.length)]
+                            : this.color;
+                        this.particles.push(new Particle(
+                            this.x, this.y, c,
+                            p.dx + (Math.random()-0.5)*0.3,
+                            p.dy + (Math.random()-0.5)*0.3,
+                            Math.random()*2.5 + 1,
+                            Math.random()*0.006 + 0.003,
+                            0.012
+                        ));
+                    });
+                    // Secondary burst - sparkle ring
+                    if (Math.random() > 0.4) {
+                        for (let i = 0; i < 30; i++) {
+                            const a = Math.random()*Math.PI*2;
+                            const sp = Math.random()*7 + 4;
+                            this.particles.push(new Particle(
+                                this.x, this.y,
+                                '#fff',
+                                Math.cos(a)*sp, Math.sin(a)*sp,
+                                Math.random()+0.3, Math.random()*0.015+0.01, 0.02
+                            ));
+                        }
+                    }
+                }
+            }
+
+            draw(ctx) {
+                if (!this.exploded) {
+                    // Rocket trail glow
+                    ctx.shadowBlur = 6;
+                    ctx.shadowColor = this.color;
+                    for (let i = 0; i < this.trail.length; i++) {
+                        const t = this.trail[i];
+                        ctx.beginPath();
+                        ctx.arc(t.x, t.y, 2*(i/this.trail.length), 0, Math.PI*2);
+                        ctx.fillStyle = this.color;
+                        ctx.globalAlpha = 0.5*(i/this.trail.length);
+                        ctx.fill();
+                    }
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, 3, 0, Math.PI*2);
+                    ctx.fillStyle = '#fff';
+                    ctx.globalAlpha = 1;
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                }
+                this.particles.forEach(p => p.draw(ctx));
+                this.textParticles.forEach(p => p.draw(ctx));
+                ctx.globalAlpha = 1;
+            }
+
+            isDone() {
+                return this.exploded && this.particles.length === 0 && this.textParticles.length === 0;
+            }
+        }
+
+        // ===== ANIMATION =====
+        let rockets = [];
+        let lastLaunch = 0;
+
+        function animate(ts) {
+            if (!fireworksActive) return;
+            // Slightly slower fade = brighter trails
+            ctx.fillStyle = 'rgba(10, 0, 21, 0.12)';
+            ctx.fillRect(0, 0, W, H);
+
+            // Launch more rockets, more often
+            const interval = Math.min(W, H) < 500 ? 500 : 350;
+            if (ts - lastLaunch > (Math.random()*400 + interval)) {
+                rockets.push(new Rocket());
+                rockets.push(new Rocket());
+                if (Math.random() > 0.4) rockets.push(new Rocket());
+                lastLaunch = ts;
+            }
+
+            rockets.forEach(r => { r.update(); r.draw(ctx); });
+            rockets = rockets.filter(r => !r.isDone());
+            requestAnimationFrame(animate);
+        }
+
+        // ===== FALLING HEARTS FROM TOP =====
+        function createFallingHeart() {
+            if (!fireworksActive) return;
+            const el = document.createElement('div');
+            el.className = 'falling-heart';
+            el.textContent = FALLING_HEARTS[Math.floor(Math.random()*FALLING_HEARTS.length)];
+            el.style.left = Math.random()*95 + '%';
+            el.style.fontSize = (Math.random()*1.2 + 0.8) + 'rem';
+            el.style.color = RAINBOW[Math.floor(Math.random()*RAINBOW.length)];
+            const dur = Math.random()*4 + 5;
+            el.style.setProperty('--fall-duration', dur + 's');
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), dur * 1000 + 200);
+        }
+
+        // ===== FLOATING UP EMOJIS =====
+        const floatEmojis = ['❤️','💗','💛','💜','⭐','🌹','😊','✨','💕'];
+        function createFloating() {
+            if (!fireworksActive) return;
+            const el = document.createElement('div');
+            el.className = 'floating-heart';
+            el.textContent = floatEmojis[Math.floor(Math.random()*floatEmojis.length)];
+            el.style.left = Math.random()*90 + 5 + '%';
+            el.style.bottom = '50px';
+            el.style.fontSize = (Math.random()*0.8 + 0.8) + 'rem';
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 4000);
+        }
+
+        // ===== MUSIC =====
+        const audio = document.getElementById('bgMusic');
+        const musicBtn = document.getElementById('musicControl');
+        let isPlaying = false;
+
+        function toggleMusic() {
+            if (isPlaying) {
+                audio.pause();
+                musicBtn.textContent = '♪';
+                musicBtn.classList.remove('playing');
+            } else {
+                audio.play();
+                musicBtn.textContent = '♫';
+                musicBtn.classList.add('playing');
+            }
+            isPlaying = !isPlaying;
+        }
+        musicBtn.addEventListener('click', toggleMusic);
+
+        // ===== START =====
+        const startScreen = document.getElementById('startScreen');
+        const lyricsBar = document.getElementById('lyricsBar');
+
+        function start() {
+            startScreen.classList.add('hidden');
+            setTimeout(() => {
+                startScreen.style.display = 'none';
+                lyricsBar.classList.add('show');
+                musicBtn.style.display = 'flex';
+
+                audio.play().then(() => {
+                    isPlaying = true;
+                    musicBtn.textContent = '♫';
+                    musicBtn.classList.add('playing');
+                }).catch(() => { isPlaying = false; });
+
+                fireworksActive = true;
+                requestAnimationFrame(animate);
+                setInterval(createFloating, 2000);
+                setInterval(createFallingHeart, 600);
+            }, 600);
+        }
+
+        startScreen.addEventListener('click', start);
+        startScreen.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            start();
+        }, { once: true });
+    })();
+    </script>
+</body>
+</html>
